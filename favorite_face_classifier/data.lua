@@ -2,7 +2,8 @@ require 'paths'
 require 'image'
 
 local channels = {'r', 'g', 'b'}
-local videoLength = 9502
+local videoLength = 46144
+local negExampleFactor = opt.negExampleFactor
 local frameWidth = 96
 local frameHeight = 96
 local frameRate = 1
@@ -75,41 +76,80 @@ local function generateData()
         local negFileIter = paths.iterfiles(negativeStreamPath)
         local exampleCount = videoLength * frameRate
         
-        local posExample = torch.Tensor(exampleCount, #channels, frameWidth, frameHeight)
+        local posExample = torch.Tensor(exampleCount, #channels, frameWidth, frameHeight):zero()
         local posLabel = torch.Tensor(exampleCount):fill(1)
-        local negExample = torch.Tensor(exampleCount, #channels, frameWidth, frameHeight)
-        local negLabel = torch.Tensor(exampleCount):fill(2)
+        local negExample = torch.Tensor(exampleCount * negExampleFactor, #channels, frameWidth, frameHeight):zero()
+        local negLabel = torch.Tensor(exampleCount * negExampleFactor):fill(2)
         local shuffle = torch.randperm(exampleCount)
+        local negShuffle = torch.randperm(exampleCount * negExampleFactor)
         if opt.normalizeSample == 1 then
             print('generating normalized data set ...')
             for i = 1, exampleCount do
                 local imageFile = paths.concat(positiveStreamPath, posFileIter())
+                local status, imageTensor = pcall(image.load, imageFile, #channels)
+                if status ~= true then
+                    print('load image error ' .. imageTensor)
+                    print(imageFile)
+                    assert(false)
+                end
                 posExample[shuffle[i]] =
-                    normalizeRGB(image.scale(image.load(imageFile, #channels), frameWidth, frameHeight))
-                imageFile = paths.concat(negativeStreamPath, negFileIter())
-                negExample[shuffle[i]] =
-                    normalizeRGB(image.scale(image.load(imageFile, #channels), frameWidth, frameHeight))
-                if i % 1000 == 0 then
-                    print('|')
+                    normalizeRGB(image.scale(imageTensor, frameWidth, frameHeight))
+                if i % 2000 == 0 then
+                    io.write('*')
+                    io.flush ()
+                end
+            end
+            for j = 1, exampleCount * negExampleFactor do
+                local imageFile = paths.concat(negativeStreamPath, negFileIter())
+                local status, imageTensor = pcall(image.load, imageFile, #channels)
+                if status ~= true then
+                    print('load image error ' .. imageTensor)
+                    print(imageFile)
+                    assert(false)
+                end
+                negExample[negShuffle[j]] =
+                    normalizeRGB(image.scale(imageTensor, frameWidth, frameHeight))
+                if j % 2000 == 0 then
+                    io.write('*')
+                    io.flush ()
                 end
             end
         else
             print('generating unnormalized data set ...')
             for i = 1, exampleCount do
                 local imageFile = paths.concat(positiveStreamPath, posFileIter())
+                local status, imageTensor = pcall(image.load, imageFile, #channels)
+                if status ~= true then
+                    print('load image error ' .. imageTensor)
+                    print(imageFile)
+                    assert(false)
+                end
                 posExample[shuffle[i]] =
-                    image.scale(image.load(imageFile, #channels), frameWidth, frameHeight)
-                imageFile = paths.concat(negativeStreamPath, negFileIter())
-                negExample[shuffle[i]] =
-                    image.scale(image.load(imageFile, #channels), frameWidth, frameHeight)
-                if i % 1000 == 0 then
-                    print('|')
+                    image.scale(imageTensor, frameWidth, frameHeight)
+                if i % 2000 == 0 then
+                    io.write('*')
+                    io.flush ()
+                end
+            end
+            for j = 1, exampleCount * negExampleFactor do
+                local imageFile = paths.concat(negativeStreamPath, negFileIter())
+                local status, imageTensor = pcall(image.load, imageFile, #channels)
+                if status ~= true then
+                    print('load image error ' .. imageTensor)
+                    print(imageFile)
+                    assert(false)
+                end
+                negExample[negShuffle[j]] =
+                    image.scale(imageTensor, frameWidth, frameHeight)
+                if j % 2000 == 0 then
+                    io.write('*')
+                    io.flush ()
                 end
             end
         end
         
         --applyNormalize(posExample, negExample)
-        
+        print('')
         print('save data to ' .. trainingDataPath)
         torch.save(paths.concat(trainingDataPath, 'posExample.t7'), posExample)
         torch.save(paths.concat(trainingDataPath, 'negExample.t7'), negExample)
@@ -129,53 +169,91 @@ function getTrainingData()
     local posExample, posLabel, negExample, negLabel = generateData()
     local posExampleCount = posExample:size(1)
     local negExampleCount = negExample:size(1)
-    local exampleCount = posExampleCount * 2
+    assert(posExampleCount * negExampleFactor == negExampleCount)
     if opt.smallTest then
         posExampleCount = 1000
-        exampleCount = 2000
+        negExampleCount = 1000
+        negExampleFactor = 1
     end
-    local testExampleCount = math.floor(exampleCount * opt.patches)
-    local trainExampleCount = exampleCount - testExampleCount
-    print('pos example count : ' .. posExampleCount)
-    print('neg example count : ' .. negExampleCount)
-    print('total example pair : ' .. exampleCount)
-    print('train example pair : ' .. trainExampleCount)
-    print('test example pair : ' .. testExampleCount)
+    
+    local testPosExampleCount = math.floor(posExampleCount * opt.patches)
+    local trainPosExampleCount = posExampleCount - testPosExampleCount
+    local testNegExampleCount = testPosExampleCount * negExampleFactor
+    local trainNegExampleCount = trainPosExampleCount * negExampleFactor
+    print('negative example factor : ' .. negExampleFactor)
+    print('test data / all data : ' .. opt.patches)
+    print('positive example count : ' .. posExampleCount)
+    print('negative example count : ' .. negExampleCount)
+    print('training positive example count : ' .. trainPosExampleCount)
+    print('test positive example count : ' .. testPosExampleCount)
+    print('training negative example count : ' .. trainNegExampleCount)
+    print('test negative example count : ' .. testNegExampleCount)
+    
+    local testExampleCount = testPosExampleCount + testNegExampleCount
+    local trainExampleCount = trainPosExampleCount + trainNegExampleCount
+    
     local trainData = {
-        data = torch.Tensor(trainExampleCount, #channels, frameHeight, frameWidth),
-        testData = torch.Tensor(testExampleCount, #channels, frameHeight, frameWidth),
-        labels = torch.Tensor(trainExampleCount),
-        testLabels = torch.Tensor(testExampleCount),
+        data = torch.Tensor(trainExampleCount, #channels, frameHeight, frameWidth):zero(),
+        testData = torch.Tensor(testExampleCount, #channels, frameHeight, frameWidth):zero(),
+        labels = torch.Tensor(trainExampleCount):zero(),
+        testLabels = torch.Tensor(testExampleCount):zero(),
         size = function() return trainExampleCount end,
         testSize = function() return testExampleCount end
     }
     
-    local index = 1
-    local i = 1
-    while index + 1 <= trainExampleCount  do
-        trainData.data[index] = posExample[i]
-        trainData.labels[index] = posLabel[i]
-        trainData.data[index + 1] = negExample[i]
-        trainData.labels[index + 1] = negLabel[i]
-        index = index + 2
-        i = i + 1
+    local dataIndex = 1
+    local posIndex = 1
+    local negIndex = 0
+    while dataIndex <= trainExampleCount do
+        trainData.data[dataIndex] = posExample[posIndex]
+        trainData.labels[dataIndex] = posLabel[posIndex]
+        posIndex = posIndex + 1
+        
+        for i = 1, negExampleFactor do
+            trainData.data[dataIndex + i] = negExample[negIndex + i]
+            trainData.labels[dataIndex + i] = negLabel[negIndex + i]
+        end
+        negIndex = negIndex + negExampleFactor
+        
+        dataIndex = dataIndex + negExampleFactor + 1
+    end
+
+    print('training data positive example count : ' .. posIndex - 1)
+    print('training data negative example count : ' .. negIndex)
+    assert(posIndex - 1 == trainPosExampleCount)
+    assert(negIndex == trainNegExampleCount)
+    
+    dataIndex = 1
+    while dataIndex <= testExampleCount do
+        trainData.testData[dataIndex] = posExample[posIndex]
+        trainData.testLabels[dataIndex] = posLabel[posIndex]
+        posIndex = posIndex + 1
+        
+        for i = 1, negExampleFactor do
+            trainData.testData[dataIndex + i] = negExample[negIndex + i]
+            trainData.testLabels[dataIndex + i] = negLabel[negIndex + i]
+        end
+        negIndex = negIndex + negExampleFactor
+        
+        dataIndex = dataIndex + negExampleFactor + 1
     end
     
-    print('generate train data complete : ' .. i - 1)
+    assert(posIndex - 1 == trainPosExampleCount + testPosExampleCount)
+    assert(negIndex == trainNegExampleCount + testNegExampleCount)
     
-    index = 1
-    while index + 1 <= testExampleCount do
-        trainData.testData[index] = posExample[i]
-        trainData.testLabels[index] = posLabel[i]
-        trainData.testData[index + 1] = negExample[i]
-        trainData.testLabels[index + 1] = negLabel[i]
-        index = index + 2
-        i = i + 1
+    for l = 1, trainExampleCount do
+        if trainData.labels[l] == 0 then
+            print('valid training data fail at : ' .. l .. ' total : ' .. trainExampleCount)
+            assert(false)
+        end
     end
     
-    print('generate test data complete : ' .. i - 1)
+    for k = 1, testExampleCount do
+        if trainData.testLabels[k] == 0 then
+            print('valid test data fail at : ' .. k .. ' total : ' .. testExampleCount)
+            assert(false)
+        end
+    end
     
-    paths.rmall('scratch', 'yes')
     return trainData
 end
-

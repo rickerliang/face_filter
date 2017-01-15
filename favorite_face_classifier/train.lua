@@ -80,7 +80,7 @@ local function train(trainData)
         end
         
         -- optimize on current mini-batch
-        optim.rmsprop(eval_E, w)
+        optim.adam(eval_E, w)
         batches = t
     end
     
@@ -97,7 +97,7 @@ local function train(trainData)
     -- next epoch
     epoch = epoch + 1
     
-    return confusion:farFrr()
+    return lossValue
 end
 
 return train

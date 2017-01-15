@@ -54,6 +54,7 @@ end
 
 -- test function
 local function test(data)
+    model:evaluate()
     -- local vars
     local time = sys.clock()
     paths.rmall('neg', 'yes')

@@ -19,12 +19,14 @@ require 'detect'
 local noFace = '_no_face'
 local noBeautyFace = '_no_beauty_face'
 local beautyFace = '_beauty_face'
+local faceCut = '_beauty_face_cut'
 
 print(sys.COLORS.Green ..  'processing: ' .. opt.input)
 
 paths.mkdir(opt.input .. noFace)
 paths.mkdir(opt.input .. noBeautyFace)
 paths.mkdir(opt.input .. beautyFace)
+paths.mkdir(opt.input .. faceCut)
 
 for file in paths.iterfiles(opt.input) do
     local f = paths.concat(opt.input, file)
@@ -34,9 +36,14 @@ for file in paths.iterfiles(opt.input) do
         goto continue
     end
     print(sys.COLORS.green ..  '====> processing file ' .. file)
-    local beauty, img = pipeline(inputImage, opt.detectorThreshold, opt.classifierThreshold)
+    local beauty, img, faces = pipeline(inputImage, opt.detectorThreshold, opt.classifierThreshold)
     if beauty == true then
         image.save(paths.concat(opt.input .. beautyFace, file), img)
+        if faces ~= nil then
+            for i, face in ipairs(faces) do
+                image.save(paths.concat(opt.input .. faceCut, file .. i .. '.png'), face)
+            end
+        end
     elseif img ~= nil then
         image.save(paths.concat(opt.input .. noBeautyFace, file), img)
     else

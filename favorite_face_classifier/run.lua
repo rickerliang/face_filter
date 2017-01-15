@@ -3,6 +3,7 @@ require 'image'
 require 'nn'
 require 'pl'
 require 'trepl'
+require 'utils'
 
 local function nilling(module)
     module.gradBias   = nil
@@ -26,13 +27,15 @@ end
 print(sys.COLORS.red ..  '==> processing options')
 
 opt = lapp[[
-    -b, --batchSize          (default 128)         batch size
+    -b, --batchSize          (default 384)         batch size
     -p, --type               (default cuda)        float or cuda
     -i, --devid              (default 1)           device ID (if using CUDA)
         --patches            (default 0.1)         percentage of samples to use for testing
         --visualize                                visualize dataset
         --smallTest                                use small data set to validate parameter tunning
         --stopStep           (default 30)          stop training while network performance never improve
+        --devCount           (default 1)           how many gpus use in data parallel training, must <= cutorch.getDeviceCount()
+        --negExampleFactor   (default 1)           unbalanced training set, neg example count = pos example count * factor, default is 2, must be positive integer 
 ]]
 
 torch.manualSeed(1)
@@ -76,28 +79,29 @@ while true do
         return
     end
     collectgarbage()
-    train(data)
-    --local _, _, currentFrr, _, currentLoss = test(data)
+    local trainLoss = train(data)
+    if trainLoss ~= trainLoss then
+        print(sys.COLORS.red .. '==> training loss is nan, training terminate!')
+        os.exit()
+    end
+
     local currentLoss = test(data)
-    --print(sys.COLORS.yellow .. '==> FRR : ' .. currentFrr[1] .. ' -- ' .. currentFrr[2])
-    --if bestFrr > currentFrr[1] + currentFrr[2] then
-    --    print(sys.COLORS.yellow .. '==> save best model')
-    --    bestFrr = currentFrr[1] + currentFrr[2]
-    --    earlyStopStep = 0
-    --    local bestModel = model:clone()
-    --    paths.mkdir('model')
-    --    local fileName = paths.concat('model', 'best_model.net')
-    --    torch.save(fileName, bestModel)
-    --end
+    if currentLoss ~= currentLoss then
+        print(sys.COLORS.red .. '==> validation loss is nan, training terminate!')
+        os.exit()
+    end
+
     if bestFrr > currentLoss then
         print(sys.COLORS.yellow .. '==> best loss ' .. bestFrr .. " > " .. currentLoss)
         print(sys.COLORS.yellow .. '==> save best model')
         bestFrr = currentLoss
         earlyStopStep = 0
-        local bestModel = model:clone()
+        --local bestModel = model:clone()
         paths.mkdir('model')
         local fileName = paths.concat('model', 'best_model.net')
-        torch.save(fileName, bestModel)
+        --torch.save(fileName, model)
+        --save dpt[1] to file, may consume gpu memory while saving, must test
+        saveDataParallel(fileName, model)
     end
     earlyStopStep = earlyStopStep + 1
 end

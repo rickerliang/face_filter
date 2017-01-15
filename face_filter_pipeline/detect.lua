@@ -300,25 +300,26 @@ function pipeline(imageTensor, detectorThreshold, classifierThreshold)
     
     local ret = imageTensor:clone()
     
-    for i, _ in ipairs(faces) do
-        local vetices = faces[i][2]
-            ret = image.drawRect(ret, vetices[3] + 5, vetices[1] + 5, vetices[4] - 5, vetices[2] - 5,
-                {lineWidth = 5, color = {0, 0, 255}})
-    end
-    
     local beautyFaceIndices = classify(scaledImages, classifierThreshold)
     if #beautyFaceIndices > 0 then
+        local retFaces = {}
         for j, indices in ipairs(beautyFaceIndices) do
             local vetices = faces[indices][2]
             print('bb x1:' .. vetices[3] .. ' y1:' .. vetices[1] .. ' x2:'
                 .. vetices[4] .. ' y2:' .. vetices[2])
+            local retFace = ret[{{}, {vetices[1] + 1, vetices[2] - 1}, {vetices[3] + 1, vetices[4] - 1}}]:clone()
+            retFaces[#retFaces + 1] = retFace
             ret = image.drawRect(ret, vetices[3] + 5, vetices[1] + 5, vetices[4] - 5, vetices[2] - 5,
                 {lineWidth = 4, color = {0, 255, 0}})
         end
+        return true, ret, retFaces
     else
+        for i, _ in ipairs(faces) do
+            local vetices = faces[i][2]
+                ret = image.drawRect(ret, vetices[3] + 5, vetices[1] + 5, vetices[4] - 5, vetices[2] - 5,
+                    {lineWidth = 5, color = {0, 0, 255}})
+        end
         print(sys.COLORS.red ..  'no beauty face')
         return false, ret
     end
-        
-    return true, ret
 end

@@ -17,6 +17,9 @@ classifier
 256
 2
 
+do not use m4v stream, use image file directly
+save train and test falsePos falseNeg
+
 ==> doing epoch on training data:
 ==> epoch # 36 [batchSize = 128]
  [============================== 61046/61046 =====================>]  Tot: 31s272ms | Step: 0ms

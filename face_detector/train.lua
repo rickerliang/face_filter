@@ -12,7 +12,7 @@ local epoch
 
 -- trainData{data, label, size}
 local function train(trainData)
-    
+    model:training()
     -- epoch tracker
     epoch = epoch or 1
     
