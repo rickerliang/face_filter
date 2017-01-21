@@ -6,8 +6,17 @@ Filter out faces you hate.
 - [torch](http://www.torch.ch)
 - [cuDNN](https://developer.nvidia.com/cudnn)
 - [turbo](https://luarocks.org/modules/kernelsauce/turbo)
+- [graphicsmagick](https://github.com/torch/rocks/blob/master/graphicsmagick-1.scm-0.rockspec)
+- [uuid](https://luarocks.org/modules/tieske/uuid)
+```bash
+# in a terminal, run the commands WITHOUT sudo
+PREFIX=$HOME/torch/install luarocks install turbo
+luarocks install graphicsmagick
+luarocks install uuid
+```
 
 ## How to play
+Download pretrained classifier model from http://pan.baidu.com/s/1eS0xbu6
 ```
 $ cd face_filter_pipeline
 $ th run.lua folder_to_classify
@@ -22,6 +31,7 @@ $ th test.lua --help
 ```
 ## Play with http
 lua turbo http server will listen at port 12121(see source file web.lua)
+http://localhost:12121/index.html
 ```
 $ cd face_filter_pipeline
 $ th web.lua

@@ -25,6 +25,10 @@ if opt.vgg == true then
 else
     modelClassifier = torch.load('../favorite_face_classifier/model/pretrained_model.net')
 end
+if torch.typename(modelClassifier) == 'nn.DataParallelTable' then
+    modelClassifier = modelClassifier:get(1)
+end
+
 local excludeSize = 120
 local batchSize = 64
 local slideStep = 15
