@@ -16,7 +16,7 @@ luarocks install uuid
 ```
 
 ## How to play
-Download pretrained classifier model from http://pan.baidu.com/s/1eS0xbu6
+Download pretrained classifier model from http://pan.baidu.com/s/1eS0xbu6.
 ```
 $ cd face_filter_pipeline
 $ th run.lua folder_to_classify
@@ -30,15 +30,15 @@ or
 $ th test.lua --help
 ```
 ## Play with http
-lua turbo http server will listen at port 12121(see source file web.lua)
-http://localhost:12121/index.html
+lua turbo http server will listen at port 12121(see source file web.lua).
+http://localhost:12121/index.html.
 ```
 $ cd face_filter_pipeline
 $ th web.lua
 ```
 ## Some Examples
-Images from http://image.baidu.com
-Good faces will surrounding by green bounding box, blue bounding box means poor face.
+Images from http://image.baidu.com.
+Good faces will be surrounded by green bounding box, blue bounding box means poor face.
 ![slide](https://raw.githubusercontent.com/rickerliang/face_filter/master/readme_images/positive_1.png)
 ![slide](https://raw.githubusercontent.com/rickerliang/face_filter/master/readme_images/positive_2.png)
 ![slide](https://raw.githubusercontent.com/rickerliang/face_filter/master/readme_images/negative_1.png)
