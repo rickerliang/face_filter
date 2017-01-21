@@ -36,6 +36,13 @@ http://localhost:12121/index.html
 $ cd face_filter_pipeline
 $ th web.lua
 ```
+## Some Examples
+Images from http://image.baidu.com
+Good faces will surrounding by green bounding box, blue bounding box means poor face.
+![slide](https://raw.githubusercontent.com/rickerliang/face_filter/master/readme_images/positive_1.png)
+![slide](https://raw.githubusercontent.com/rickerliang/face_filter/master/readme_images/positive_2.png)
+![slide](https://raw.githubusercontent.com/rickerliang/face_filter/master/readme_images/negative_1.png)
+![slide](https://raw.githubusercontent.com/rickerliang/face_filter/master/readme_images/negative_2.png)
 ## Training your own model
 ```
 There are two models to be train. A face detector and a face classifier.
