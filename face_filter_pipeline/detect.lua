@@ -2,6 +2,7 @@ require 'image'
 require 'torch'
 require '../face_detector/nms'
 require 'nn'
+require '../favorite_face_classifier/inception'
 
 torch.manualSeed(1)
 torch.setdefaulttensortype('torch.FloatTensor')
@@ -166,33 +167,33 @@ local function detectFace(imageTensor, detectorThreshold)
     
     local scaleFactors = {}    
     if imageTensor:size(3) <= 300 or imageTensor:size(2) <= 300 then
-        table.insert(scaleFactors, 4)
-        table.insert(scaleFactors, 3)
+        --table.insert(scaleFactors, 4)
+        --table.insert(scaleFactors, 3)
         table.insert(scaleFactors, 2)
         table.insert(scaleFactors, 1)
         table.insert(scaleFactors, 0.75)
         table.insert(scaleFactors, 0.5)
     elseif imageTensor:size(3) <= 800 or imageTensor:size(2) <= 800 then
-        table.insert(scaleFactors, 1.2)
+        --table.insert(scaleFactors, 1.2)
         table.insert(scaleFactors, 1)
         table.insert(scaleFactors, 0.75)
         table.insert(scaleFactors, 0.5)
-        table.insert(scaleFactors, 0.25)
+        --table.insert(scaleFactors, 0.25)
     elseif imageTensor:size(3) < 1300 or imageTensor:size(2) < 1300 then
         table.insert(scaleFactors, 1)
         table.insert(scaleFactors, 0.75)
         table.insert(scaleFactors, 0.5)
-        table.insert(scaleFactors, 0.25)
+        --table.insert(scaleFactors, 0.25)
     elseif imageTensor:size(3) < 2400 or imageTensor:size(2) < 2400 then
         table.insert(scaleFactors, 0.75)
         table.insert(scaleFactors, 0.5)
         table.insert(scaleFactors, 0.25)
-        table.insert(scaleFactors, 0.125)
+        --table.insert(scaleFactors, 0.125)
     else
         table.insert(scaleFactors, 0.5)
         table.insert(scaleFactors, 0.25)
         table.insert(scaleFactors, 0.125)
-        table.insert(scaleFactors, 0.06)
+        --table.insert(scaleFactors, 0.06)
     end
     
     local hasFace = 0
@@ -271,6 +272,12 @@ local function classify(images, classifierThreshold)
     --print(i .. ' - ' .. i + mod)
     local subTable = tableSlice(images, i, i + mod)
     local s = torch.Tensor(tableToTensor(subTable))
+    if s:size(1) == 1 then
+        -- hack, see https://github.com/soumith/cudnn.torch/issues/281
+        local dummy = torch.zeros(1, 3, frameWidth, frameHeight)
+        s = torch.cat(s, dummy, 1)
+    end
+    --print(s:size())
     s = s:cuda()
     local result = modelClassifier:forward(s)
     result = torch.exp(result)

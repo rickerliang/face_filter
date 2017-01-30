@@ -8,15 +8,17 @@ Filter out faces you hate.
 - [turbo](https://luarocks.org/modules/kernelsauce/turbo)
 - [graphicsmagick](https://github.com/torch/rocks/blob/master/graphicsmagick-1.scm-0.rockspec)
 - [uuid](https://luarocks.org/modules/tieske/uuid)
+- [dpnn](https://github.com/Element-Research/dpnn)
 ```bash
 # in a terminal, run the commands WITHOUT sudo
 PREFIX=$HOME/torch/install luarocks install turbo
 luarocks install graphicsmagick
 luarocks install uuid
+luarocks install dpnn
 ```
 
 ## How to play
-Download pretrained classifier model from http://pan.baidu.com/s/1eS0xbu6.
+Download pretrained classifier model from http://pan.baidu.com/s/1sl6MQLn.
 ```
 $ cd face_filter_pipeline
 $ th run.lua folder_to_classify

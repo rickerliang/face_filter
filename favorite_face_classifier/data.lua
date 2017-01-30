@@ -1,3 +1,4 @@
+require 'ffmpeg'
 require 'paths'
 require 'image'
 

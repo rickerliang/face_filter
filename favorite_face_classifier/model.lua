@@ -1,6 +1,7 @@
 require 'torch'
 require 'nn'
 require 'utils'
+require 'inception'
 local createModel = require 'resnet'
 local weightInit = require 'weight-init'
 
@@ -46,50 +47,50 @@ local function buildModel()
 end
 
 local function inceptionModel()
-   local net = nn.Sequential()
+    local net = nn.Sequential()
 
-   net:add(nn.SpatialConvolutionMM(3, 64, 7, 7, 2, 2, 3, 3))
-   net:add(nn.SpatialBatchNormalization(64))
-   net:add(nn.ReLU())
+    net:add(cudnn.SpatialConvolution(3, 64, 7, 7, 2, 2, 3, 3))
+    net:add(cudnn.SpatialBatchNormalization(64))
+    net:add(nn.LeakyReLU(0.01))
 
-   -- The FaceNet paper just says `norm` and that the models are based
-   -- heavily on the inception paper (http://arxiv.org/pdf/1409.4842.pdf),
-   -- which uses pooling and normalization in the same way in the early layers.
-   --
-   -- The Caffe and official versions of this network both use LRN:
-   --
-   --   + https://github.com/BVLC/caffe/tree/master/models/bvlc_googlenet
-   --   + https://github.com/google/inception/blob/master/inception.ipynb
-   --
-   -- The Caffe docs at http://caffe.berkeleyvision.org/tutorial/layers.html
-   -- define LRN to be across channels.
-   net:add(nn.SpatialMaxPooling(3, 3, 2, 2, 1, 1))
-   net:add(nn.SpatialCrossMapLRN(5, 0.0001, 0.75))
+    -- The FaceNet paper just says `norm` and that the models are based
+    -- heavily on the inception paper (http://arxiv.org/pdf/1409.4842.pdf),
+    -- which uses pooling and normalization in the same way in the early layers.
+    --
+    -- The Caffe and official versions of this network both use LRN:
+    --
+    --   + https://github.com/BVLC/caffe/tree/master/models/bvlc_googlenet
+    --   + https://github.com/google/inception/blob/master/inception.ipynb
+    --
+    -- The Caffe docs at http://caffe.berkeleyvision.org/tutorial/layers.html
+    -- define LRN to be across channels.
+    net:add(cudnn.SpatialMaxPooling(3, 3, 2, 2, 1, 1))
+    net:add(cudnn.SpatialCrossMapLRN(5, 0.0001, 0.75))
 
-   -- Inception (2)
-   net:add(nn.SpatialConvolutionMM(64, 64, 1, 1))
-   net:add(nn.SpatialBatchNormalization(64))
-   net:add(nn.ReLU())
-   net:add(nn.SpatialConvolutionMM(64, 192, 3, 3, 1, 1, 1))
-   net:add(nn.SpatialBatchNormalization(192))
-   net:add(nn.ReLU())
+    -- Inception (2)
+    net:add(cudnn.SpatialConvolution(64, 64, 1, 1))
+    net:add(cudnn.SpatialBatchNormalization(64))
+    net:add(nn.LeakyReLU(0.01))
+    net:add(cudnn.SpatialConvolution(64, 192, 3, 3, 1, 1, 1))
+    net:add(cudnn.SpatialBatchNormalization(192))
+    net:add(nn.LeakyReLU(0.01))
 
-   net:add(nn.SpatialCrossMapLRN(5, 0.0001, 0.75))
-   net:add(nn.SpatialMaxPooling(3, 3, 2, 2, 1, 1))
+    net:add(cudnn.SpatialCrossMapLRN(5, 0.0001, 0.75))
+    net:add(cudnn.SpatialMaxPooling(3, 3, 2, 2, 1, 1))
 
-   -- Inception (3a)
-   net:add(nn.Inception{
+    -- Inception (3a)
+    net:add(cudnn.Inception{
      inputSize = 192,
      kernelSize = {3, 5},
      kernelStride = {1, 1},
      outputSize = {128, 32},
      reduceSize = {96, 16, 32, 64},
-     pool = nn.SpatialMaxPooling(3, 3, 1, 1, 1, 1),
+     pool = cudnn.SpatialMaxPooling(3, 3, 1, 1, 1, 1),
      batchNorm = true
-   })
+    })
 
-   -- Inception (3b)
-   net:add(nn.Inception{
+    -- Inception (3b)
+    net:add(cudnn.Inception{
      inputSize = 256,
      kernelSize = {3, 5},
      kernelStride = {1, 1},
@@ -97,21 +98,21 @@ local function inceptionModel()
      reduceSize = {96, 32, 64, 64},
      pool = nn.SpatialLPPooling(256, 2, 3, 3, 1, 1),
      batchNorm = true
-   })
+    })
 
-   -- Inception (3c)
-   net:add(nn.Inception{
+    -- Inception (3c)
+    net:add(cudnn.Inception{
      inputSize = 320,
      kernelSize = {3, 5},
      kernelStride = {2, 2},
      outputSize = {256, 64},
      reduceSize = {128, 32, nil, nil},
-     pool = nn.SpatialMaxPooling(3, 3, 2, 2, 1, 1),
+     pool = cudnn.SpatialMaxPooling(3, 3, 2, 2, 1, 1),
      batchNorm = true
-   })
+    })
 
-   -- Inception (4a)
-   net:add(nn.Inception{
+    -- Inception (4a)
+    net:add(cudnn.Inception{
      inputSize = 640,
      kernelSize = {3, 5},
      kernelStride = {1, 1},
@@ -119,21 +120,21 @@ local function inceptionModel()
      reduceSize = {96, 32, 128, 256},
      pool = nn.SpatialLPPooling(640, 2, 3, 3, 1, 1),
      batchNorm = true
-   })
+    })
 
-   -- Inception (4e)
-   net:add(nn.Inception{
+    -- Inception (4e)
+    net:add(cudnn.Inception{
      inputSize = 640,
      kernelSize = {3, 5},
      kernelStride = {2, 2},
      outputSize = {256, 128},
      reduceSize = {160, 64, nil, nil},
-     pool = nn.SpatialMaxPooling(3, 3, 2, 2, 1, 1),
+     pool = cudnn.SpatialMaxPooling(3, 3, 2, 2, 1, 1),
      batchNorm = true
-   })
+    })
 
-   -- Inception (5a)
-   net:add(nn.Inception{
+    -- Inception (5a)
+    net:add(cudnn.Inception{
               inputSize = 1024,
               kernelSize = {3},
               kernelStride = {1},
@@ -141,30 +142,45 @@ local function inceptionModel()
               reduceSize = {96, 96, 256},
               pool = nn.SpatialLPPooling(960, 2, 3, 3, 1, 1),
               batchNorm = true
-   })
-   -- net:add(nn.Reshape(736,3,3))
+    })
+    -- net:add(nn.Reshape(736,3,3))
 
-   -- Inception (5b)
-   net:add(nn.Inception{
+    -- Inception (5b)
+    net:add(cudnn.Inception{
               inputSize = 736,
               kernelSize = {3},
               kernelStride = {1},
               outputSize = {384},
               reduceSize = {96, 96, 256},
-              pool = nn.SpatialMaxPooling(3, 3, 1, 1, 1, 1),
+              pool = cudnn.SpatialMaxPooling(3, 3, 1, 1, 1, 1),
               batchNorm = true
-   })
+    })
 
-   net:add(nn.SpatialAveragePooling(3, 3))
+    net:add(cudnn.SpatialAveragePooling(3, 3))
 
-   -- Validate shape with:
-   -- net:add(nn.Reshape(736))
+    -- Validate shape with:
+    net:add(nn.Reshape(736))
 
-   net:add(nn.View(736))
-   net:add(nn.Linear(736, 1024))
-   net:add(nn.Normalize(2))
+    net:add(nn.View(736))
+    --net:add(nn.Linear(736, 1024))
+    --net:add(nn.Normalize(2))
+   
+    local classifier = nn.Sequential()
+    classifier:add(nn.Reshape(736))
+    classifier:add(nn.Linear(736, 256))
+    classifier:add(cudnn.BatchNormalization(256))
+    classifier:add(nn.LeakyReLU(0.01))
+    classifier:add(nn.Linear(256, 2))
+    classifier:add(cudnn.LogSoftMax())
+    weightInit(classifier, 'kaiming')
 
-   return net
+    local model = nn.Sequential()
+    model:add(net)
+    model:add(classifier)
+    local negWeight = 1.0 / (1.0 + opt.negExampleFactor)
+    local loss = nn.ClassNLLCriterion(torch.Tensor{1.0 - negWeight, negWeight})
+    print(model)
+    return model, loss
 end
 
 local function buildDeepConvnet()
@@ -246,7 +262,7 @@ local function buildResNet()
     return resnet, nn.ClassNLLCriterion(torch.Tensor{1.0 - negWeight, negWeight})
 end
 
-local model, loss = buildResNet()
+local model, loss = inceptionModel()
 model = makeDataParallel(model, opt.devCount)
 if opt.type == 'cuda' then
     model = model:cuda()

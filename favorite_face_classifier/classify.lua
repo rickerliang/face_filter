@@ -1,5 +1,6 @@
 require 'image'
 require 'torch'
+require 'inception'
 
 local channels = {'r', 'g', 'b'}
 local frameWidth = 96
@@ -140,9 +141,6 @@ end
 
 print(sys.COLORS.Yellow ..  '====> begin')
 model = torch.load(opt.model)
-if torch.typename(model) == 'nn.DataParallelTable' then
-    model = model:get(1)
-end
 if opt.type == 'cuda' then model = model:cuda() end
 model:evaluate()
 for file in paths.iterfiles(opt.input) do

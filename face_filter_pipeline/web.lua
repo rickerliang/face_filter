@@ -11,7 +11,7 @@ cmd:text("Options:")
 cmd:option('-vgg', false, 'use vgg net')
 cmd:option("-port", 12121, 'listen port')
 cmd:option('-detectorThreshold', 0.9, 'face detector threshold')
-cmd:option('-classifierThreshold', 0.8, 'face classifier threshold')
+cmd:option('-classifierThreshold', 0.9, 'face classifier threshold')
 cmd:option('-devid', 1, 'cuda dev id')
 opt = cmd:parse(arg)
 
@@ -69,5 +69,6 @@ local app = turbo.web.Application:new(
       {"^/([%a%d%.%-_]+)$", turbo.web.StaticFileHandler, path.join(ROOT, "assets/")},
    }
 )
+print("Listening 0.0.0.0:" .. opt.port)
 app:listen(opt.port, "0.0.0.0", {max_body_size = CURL_MAX_SIZE})
 turbo.ioloop.instance():start()

@@ -3,6 +3,8 @@ require 'nn'
 require 'cunn'
 require 'cudnn'
 require 'cutorch'
+require 'dpnn'
+require '../favorite_face_classifier/inception'
 
 torch.setdefaulttensortype('torch.FloatTensor')
 
