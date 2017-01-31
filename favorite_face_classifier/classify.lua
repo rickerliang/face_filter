@@ -1,6 +1,7 @@
 require 'image'
 require 'torch'
 require 'inception'
+local buildEnsembleModel = require 'ensemble'
 
 local channels = {'r', 'g', 'b'}
 local frameWidth = 96
@@ -19,6 +20,7 @@ cmd:option('-type', 'cuda', 'model type cuda or cpu')
 cmd:option('-devid', 1, 'cuda device id')
 cmd:option('-batchSize', 64, 'prediction batch size')
 cmd:option('-threshold', 0.99, 'prediction threshold')
+cmd:option('-ensemble', false, 'use model ensemble, pretrained models must in ensemble folder')
 cmd:text()
 
 -- parse input params
@@ -88,6 +90,10 @@ local function classify(slices, origins, files)
     paths.mkdir(unlikePath)
     
     local probability = opt.threshold
+    if opt.ensemble then
+        -- reset to 0.5 according to model vote
+        probability = 0.5
+    end
     local i = 1
     while i + opt.batchSize - 1 < #slices do
         print(i .. ' - ' .. i + opt.batchSize - 1)
@@ -95,7 +101,12 @@ local function classify(slices, origins, files)
         local s = torch.Tensor(tableToTensor(subTable))
         s = s:cuda()
         local result = model:forward(s)
-        result = torch.exp(result)
+        if opt.ensemble == false then
+            -- ensemble model output probability[0, 1]
+            -- the others output log probability
+            result = torch.exp(result)
+        end
+        --print(result)
         for j = 1, result:size()[1] do
             if result[j][1] >= probability then
                 image.save(paths.concat(likePath,
@@ -114,7 +125,12 @@ local function classify(slices, origins, files)
     local s = torch.Tensor(tableToTensor(subTable))
     s = s:cuda()
     local result = model:forward(s)
-    result = torch.exp(result)
+    if opt.ensemble == false then
+        -- ensemble model output probability[0, 1]
+        -- the others output log probability
+        result = torch.exp(result)
+    end
+    --print(result)
     for j = 1, result:size()[1] do
         if result[j][1] >= probability then
             image.save(paths.concat(likePath,
@@ -140,7 +156,15 @@ end
 
 
 print(sys.COLORS.Yellow ..  '====> begin')
-model = torch.load(opt.model)
+if opt.ensemble then
+    local ensembleThreshold = opt.threshold
+    -- classifier threshold reset to 0.5 according to model vote
+    print('use ensemble strategy')
+    model = buildEnsembleModel("ensemble", ensembleThreshold)
+else
+    print('use single model')
+    model = torch.load(opt.model)
+end
 if opt.type == 'cuda' then model = model:cuda() end
 model:evaluate()
 for file in paths.iterfiles(opt.input) do

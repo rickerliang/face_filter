@@ -25,10 +25,10 @@ echo "true neg : $cfTrueNegExample"
 echo "false neg : $cfFalseNegExample"
 
 echo "sensitivity : true positive rate : recall : TPR : (true pos / total pos) : "
-echo "scale=2; $cfTruePosExample / $posExample" | bc
+echo "scale=4; $cfTruePosExample / $posExample" | bc
 
 echo "1-specificity : "
-echo "scale=2; 1 - $cfTrueNegExample / $negExample" | bc
+echo "scale=4; 1 - $cfTrueNegExample / $negExample" | bc
 
 echo "specificity : true negative rate : SPC : TNR : (true neg / total neg) : "
-echo "scale=2; $cfTrueNegExample / $negExample" | bc
+echo "scale=4; $cfTrueNegExample / $negExample" | bc
