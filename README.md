@@ -45,6 +45,7 @@ $ th web.lua
 ![slide](https://raw.githubusercontent.com/rickerliang/face_filter/master/readme_images/negative_2.png)
 ![slide](https://raw.githubusercontent.com/rickerliang/face_filter/master/readme_images/positive_1.png)
 ![slide](https://raw.githubusercontent.com/rickerliang/face_filter/master/readme_images/positive_2.png)
+
 ## Training your own model
 ```
 There are two models to be trained. A face detector and a face classifier.
