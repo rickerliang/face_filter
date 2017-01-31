@@ -55,6 +55,6 @@ c. Note, once you modify(add or remove) training example in pos or neg folder, y
 ```
 ## About model ensemble
 * If you trained some models with different architecture or different hyper parameter, you can ensembling these models to achieve better performance than a single model.
-* See this article for more detial [KAGGLE ENSEMBLING GUIDE](http://mlwave.com/kaggle-ensembling-guide/).
+* See [KAGGLE ENSEMBLING GUIDE](http://mlwave.com/kaggle-ensembling-guide/) for more detial.
 * The face classifier supports model ensemble, put some trained models in `favorite_face_classifier/ensemble` folder, and `th classifier.lua -ensemble` to use model ensemble.
 * In my experiment, 5 models ensemble achieve true positive rate 0.99 and true negative rate 0.98, in contrast, on a single model, true positive rate 0.98 and true negative rate 0.97 .
