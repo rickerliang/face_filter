@@ -123,8 +123,18 @@ local function classify(slices, origins, files)
     print(i .. ' - ' .. i + mod)
     local subTable = tableSlice(slices, i, i + mod)
     local s = torch.Tensor(tableToTensor(subTable))
+    local hack = false
+    if s:size(1) == 1 then
+        -- hack, see https://github.com/soumith/cudnn.torch/issues/281
+        local dummy = torch.zeros(1, 3, frameWidth, frameHeight)
+        s = torch.cat(s, dummy, 1)
+        hack = true
+    end
     s = s:cuda()
     local result = model:forward(s)
+    if hack == true then
+        result = result[{{1, -2}, {}}]
+    end
     if opt.ensemble == false then
         -- ensemble model output probability[0, 1]
         -- the others output log probability
